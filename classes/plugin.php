@@ -64,10 +64,9 @@ class CWS_WP_Help_Plugin extends WP_Stack_Plugin2 {
 
 		if ( 'dashboard-submenu' != $this->get_option( 'menu_location' ) ) {
 			$this->admin_base = 'admin.php';
-			if ( 'bottom' != $this->get_option( 'menu_location' ) ) {
-				add_filter( 'custom_menu_order', '__return_true' );
-				$this->hook( 'menu_order' );
-			}
+			add_filter( 'custom_menu_order', '__return_true' );
+			$this->hook( 'menu_order' );
+			
 		} else {
 			$this->admin_base = 'index.php';
 		}
@@ -76,7 +75,7 @@ class CWS_WP_Help_Plugin extends WP_Stack_Plugin2 {
 		$this->hook( 'network_admin_plugin_action_links_' . plugin_basename( $this->__FILE__ ), 'action_links' );
 
 		// menu_order debug
-		// add_filter( 'the_title', function( $title, $post_id ) { $post = get_post( $post_id ); return $title . ' [' . $post->menu_order . ']'; }, 10, 2 );
+		//add_filter( 'the_title', function( $title, $post_id ) { $post = get_post( $post_id ); return $title . ' [' . $post->menu_order . ']'; }, 10, 2 );
 
 		// Register the wp-help post type
 		register_post_type( self::POST_TYPE,
@@ -417,18 +416,40 @@ class CWS_WP_Help_Plugin extends WP_Stack_Plugin2 {
 	}
 
 	public function menu_order( $menu ) {
+
 		$custom_order = array();
+
+		if ($this->get_option( 'menu_location' ) == 'top')
+			$custom_order[] = self::MENU_SLUG;
+
 		foreach ( $menu as $index => $item ) {
 			if ( 'index.php' == $item ) {
 				if ( 'below-dashboard' == $this->get_option( 'menu_location' ) )
+				{
 					$custom_order[] = 'index.php';
-				$custom_order[] = self::MENU_SLUG;
-				if ( 'above-dashboard' == $this->get_option( 'menu_location' ) )
+					$custom_order[] = self::MENU_SLUG;
+				}
+				elseif ( 'above-dashboard' == $this->get_option( 'menu_location' ) )
+				{
+					$custom_order[] = self::MENU_SLUG;
 					$custom_order[] = 'index.php';
-			} elseif ( self::MENU_SLUG != $item ) {
+				}
+				else 
+				{
+					$custom_order[] = 'index.php';
+				}
+			}
+			elseif ( self::MENU_SLUG != $item )
+			{
 				$custom_order[] = $item;
 			}
 		}
+
+		if ($this->get_option( 'menu_location' ) == 'bottom')
+			$custom_order[] = self::MENU_SLUG;
+
+		error_log(print_r($custom_order, true));
+
 		return $custom_order;
 	}
 
@@ -540,9 +561,9 @@ class CWS_WP_Help_Plugin extends WP_Stack_Plugin2 {
 	public function admin_menu() {
 		if ( 'dashboard-submenu' != $this->get_option( 'menu_location' ) ) {
 			$icon = version_compare( $GLOBALS['wp_version'], '3.8-RC1', '>=' ) ? 'dashicons-editor-help' : $this->get_url() . 'images/icon-16.png';
-			$hook = add_menu_page( $this->get_option( 'h2' ), $this->get_option( 'h2' ), $this->get_cap( 'read_posts' ), self::MENU_SLUG, array( $this, 'render_listing_page' ), $icon );
+			$hook = add_menu_page( $this->get_option( 'h2' ), $this->get_option( 'h2' ), $this->get_cap( 'read_posts' ), self::MENU_SLUG, array( $this, 'render_listing_page' ), $icon, -PHP_INT_MAX);
 		} else {
-			$hook = add_dashboard_page( $this->get_option( 'h2' ), $this->get_option( 'h2' ), $this->get_cap( 'read_posts' ), self::MENU_SLUG, array( $this, 'render_listing_page' ) );
+			$hook = add_dashboard_page( $this->get_option( 'h2' ), $this->get_option( 'h2' ), $this->get_cap( 'read_posts' ), self::MENU_SLUG , array( $this, 'render_listing_page' ) );
 		}
 		$this->hook( "load-{$hook}", 'enqueue' );
 	}
